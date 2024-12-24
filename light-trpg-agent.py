@@ -5,7 +5,7 @@ from langgraph.graph import Graph
 from langchain_core.prompts import ChatPromptTemplate
 from langgraph.checkpoint.memory import MemorySaver
 from langchain_core.messages import HumanMessage
-from tools import roll_dice, update_game_state, summarize_story
+from tools import roll_dice, update_turn, update_hp, manage_inventory, summarize_story
 from langgraph.graph import StateGraph
 from schemas import GameState
 from langgraph.prebuilt import ToolNode, tools_condition
@@ -24,7 +24,9 @@ template = ChatPromptTemplate(
 
     以下のツールが利用可能です：
     - roll_dice: サイコロを振る（例：2d6）。戦闘や判定時に使用してください。
-    - update_game_state: HP、アイテム、ターン数の更新時に使用してください。
+    - update_turn: ターン数を更新します。
+    - update_hp: プレイヤーのHPを更新します。
+    - manage_inventory: アイテムの追加・削除を行います。
     - summarize_story: 3ターン経過時やセッション終了時に物語を要約します。
 
     ルール：
@@ -41,7 +43,7 @@ template = ChatPromptTemplate(
 llm = ChatOpenAI(
     api_key=os.getenv("OPENAI_API_KEY"), model="gpt-4o-mini", temperature=0.7
 )
-tools = [roll_dice, update_game_state, summarize_story]
+tools = [roll_dice, update_turn, update_hp, manage_inventory, summarize_story]
 llm = llm.bind_tools(tools)
 model = template | llm
 
