@@ -89,7 +89,8 @@ if __name__ == "__main__":
         },
         config=config,
     ):
-        print("\nイベント:", event)
+        if isinstance(event, dict) and "game_master" in event:
+            print("\nGM:", event["game_master"]["messages"][-1].content)
 
     # メインループ
     while True:
@@ -100,4 +101,7 @@ if __name__ == "__main__":
             },
             config=config,
         ):
-            print("\nイベント:", event)
+            if isinstance(event, dict) and "game_master" in event:
+                print("\nGM:", event["game_master"]["messages"][-1].content)
+            else:
+                print("\nイベント:", event)

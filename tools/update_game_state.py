@@ -13,7 +13,7 @@ def update_game_state(
     items_to_add: List[str] = None,
     items_to_remove: List[str] = None,
     turn_count_inc: int = 0,
-    tool_call_id: str = None,
+    tool_call_id: str = "default",
 ) -> Command:
     """ゲームの状態を一括で更新します。HP、アイテム、ターン数を同時に更新できます。"""
     items = game_state["items"].copy()
@@ -34,7 +34,7 @@ def update_game_state(
             "current_status": (
                 "END"
                 if new_turn >= game_state["max_turns"]
-                else game_state["current_status"]
+                else game_state.get("current_status", "PLAYING")
             ),
             "messages": [
                 ToolMessage(
