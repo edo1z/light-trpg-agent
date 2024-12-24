@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "trpg-agent"
+name = "light-trpg-agent"
 version = "0.1.0"
 description = ""
 authors = ["edo1z <endo.yuta@logicky.com>"]
