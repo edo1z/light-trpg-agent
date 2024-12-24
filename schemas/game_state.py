@@ -6,8 +6,6 @@ from typing_extensions import TypedDict
 
 class GameState(TypedDict, total=False):
     messages: Annotated[list[BaseMessage], add_messages]
-    world_intro: str
-    story_log: List[str]
     player_hp: int
     items: List[str]
     turn_count: int

@@ -5,7 +5,7 @@ from langgraph.graph import Graph
 from langchain_core.prompts import ChatPromptTemplate
 from langgraph.checkpoint.memory import MemorySaver
 from langchain_core.messages import HumanMessage
-from tools import roll_dice, update_game_state, summarize_story
+from tools import roll_dice, update_game_state
 from langgraph.graph import StateGraph
 from schemas import GameState
 from langgraph.prebuilt import ToolNode, tools_condition
@@ -23,14 +23,13 @@ template = ChatPromptTemplate(
     以下のツールが利用可能です：
     - roll_dice: サイコロを振る（例：2d6）。戦闘や判定時に使用してください。
     - update_game_state: ゲームの状態（HP・アイテム・ターン）を一括で更新します。
-    - summarize_story: セッション終了時に物語を要約します。
 
     重要な制約：
     - 状態の更新（HP・アイテム・ターン）は必ず1回のupdate_game_stateで行ってください
     - update_game_stateからのToolMessageを受け取った後は、新たなツール呼び出しを行わないでください
     - roll_diceは連続して使用可能です
     - プレイヤーのアクションごとに必ずターン数を1増やしてください
-    - 最初の質問で決まったターン数を超えたらセッションを終了してください
+    - 最初の質問で決まったターン数を超えたらセッションを終了し、必ず物語を要約して表示してください
 
     ルール：
     1. 最初は以下の順で1つずつ質問してください：
@@ -49,7 +48,7 @@ template = ChatPromptTemplate(
     3. プレイヤーのアクションごとにツールを適切に使用してください
     4. 戦闘や判定時は必ずroll_diceを使用してください
     5. 状態の更新は必ずupdate_game_stateを使用してください
-    6. セッション終了時は必ずsummarize_storyで物語を要約してください
+    6. セッション終了時は必ず物語を要約して表示してください
     """,
         ),
         ("placeholder", "{messages}"),
@@ -58,7 +57,7 @@ template = ChatPromptTemplate(
 llm = ChatOpenAI(
     api_key=os.getenv("OPENAI_API_KEY"), model="gpt-4o-mini", temperature=0.7
 )
-tools = [roll_dice, update_game_state, summarize_story]
+tools = [roll_dice, update_game_state]
 llm = llm.bind_tools(tools)
 model = template | llm
 
