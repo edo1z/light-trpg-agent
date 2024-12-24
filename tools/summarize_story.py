@@ -13,6 +13,6 @@ class SummarizeStoryInput(BaseModel):
 def summarize_story(game_state: GameState, input_text: str = "") -> str:
     """これまでのストーリーログを要約して短い物語形式にまとめます。"""
     story_log = game_state.story_log
-    summary = "Here's a quick summary of your adventure:\n"
+    summary = "冒険の要約をお伝えします：\n"
     summary += "\n".join(story_log)
     return summary
