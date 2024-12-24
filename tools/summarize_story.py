@@ -1,7 +1,7 @@
 from langchain_core.tools import tool
 from pydantic import BaseModel, Field
 from typing import List
-from game_state import GameState
+from schemas import GameState
 
 
 class SummarizeStoryInput(BaseModel):

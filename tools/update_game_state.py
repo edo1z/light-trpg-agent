@@ -1,7 +1,7 @@
 from langchain_core.tools import tool
 from pydantic import BaseModel, Field
 from typing import List
-from game_state import GameState  # game_stateの型を定義したクラス
+from schemas import GameState  # schemasからインポートするように変更
 
 
 class GameStateUpdate(BaseModel):

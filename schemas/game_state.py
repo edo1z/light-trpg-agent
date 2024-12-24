@@ -3,7 +3,6 @@ from typing import List
 
 
 class GameState(BaseModel):
-    session_id: str = Field(description="ユーザー単位またはセッションごとのID")
     world_intro: str = Field(default="", description="初期世界観説明")
     story_log: List[str] = Field(
         default_factory=list, description="これまでの描写や行動のログ"

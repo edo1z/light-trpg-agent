@@ -1,3 +1,5 @@
+from dotenv import load_dotenv
+import os
 from langchain_openai import ChatOpenAI
 from langgraph.graph import Graph
 from langchain_core.prompts import ChatPromptTemplate
@@ -6,8 +8,11 @@ from tools import roll_dice, update_game_state, summarize_story
 from langgraph.graph import StateGraph
 from schemas import GameState
 
+# .envファイルの読み込み
+load_dotenv()
+
 # OpenAI GPT-4モデルの初期化
-llm = ChatOpenAI(model="gpt-4", temperature=0.7)
+llm = ChatOpenAI(api_key=os.getenv("OPENAI_API_KEY"), model="gpt-4", temperature=0.7)
 
 # プロンプトテンプレートの作成
 prompt = ChatPromptTemplate.from_messages(
@@ -49,15 +54,24 @@ tools = [roll_dice, update_game_state, summarize_story]
 
 # GameMasterノードの定義
 def game_master(inputs):
+    # AIの応答を取得
     response = llm.invoke(
         prompt.format(
             game_state=inputs["game_state"],
             input=inputs["user_input"],
-            genre=inputs.get("genre", "ファンタジー"),  # デフォルト値を設定
-            protagonist=inputs.get("protagonist", "勇者"),  # デフォルト値を設定
+            genre=inputs.get("genre", "ファンタジー"),
+            protagonist=inputs.get("protagonist", "勇者"),
         )
     )
-    return {"response": response.content}
+
+    # GameStateの更新
+    inputs["game_state"].story_log.append(response.content)
+    inputs["game_state"].current_status = "IN_PROGRESS"
+
+    return {
+        "response": response.content,
+        "game_state": inputs["game_state"],  # 更新したGameStateを返す
+    }
 
 
 # グラフの作成
@@ -66,17 +80,9 @@ builder.add_node("game_master", game_master)
 builder.set_entry_point("game_master")
 graph = builder.compile(checkpointer=MemorySaver())
 
-config = {"configurable": {"thread_id": "1"}}
-for event in graph.stream({"num": 1}, config=config):
-    if "__interrupt__" in event:
-        user_input = input(event["__interrupt__"][0].value)
-        result = graph.invoke(Command(resume=int(user_input)), config=config)
-        print("result:", result["num"])
-
 if __name__ == "__main__":
     # 初期ゲーム状態の作成
     initial_state = GameState(
-        session_id="test-session",
         world_intro="あなたは小さな村の冒険者です。村の近くに現れた魔物を退治することになりました。",
         player_hp=10,
         items=["短剣", "回復薬"],
@@ -84,7 +90,7 @@ if __name__ == "__main__":
     )
 
     # 初期設定
-    config = {"configurable": {"session_id": "test-session"}}
+    config = {"configurable": {"thread_id": "test-thread"}}
 
     print("=== TRPGセッション開始 ===")
     print(initial_state.world_intro)
