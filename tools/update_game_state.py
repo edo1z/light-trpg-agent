@@ -1,7 +1,7 @@
 from langchain_core.tools import tool
 from pydantic import BaseModel, Field
 from typing import List
-from schemas import GameState  # schemasからインポートするように変更
+from schemas import GameState
 
 
 class GameStateUpdate(BaseModel):
@@ -21,6 +21,7 @@ def update_game_state(
     turn_count_inc: int = 1,
 ) -> str:
     """ゲームの状態（HP、アイテム、ターン数など）を更新します。"""
+    print(f"update_game_state: {game_state}")
     game_state.player_hp += hp_change
     if items_to_add:
         game_state.items.extend(items_to_add)

@@ -8,10 +8,9 @@ from langchain_core.messages import HumanMessage
 from tools import roll_dice, update_game_state, summarize_story
 from langgraph.graph import StateGraph
 from schemas import GameState
+from langgraph.prebuilt import ToolNode, tools_condition
 
 load_dotenv()
-
-tools = [roll_dice, update_game_state, summarize_story]
 
 template = ChatPromptTemplate(
     [
@@ -39,7 +38,11 @@ template = ChatPromptTemplate(
         ("placeholder", "{messages}"),
     ]
 )
-llm = ChatOpenAI(api_key=os.getenv("OPENAI_API_KEY"), model="gpt-4", temperature=0.7)
+llm = ChatOpenAI(
+    api_key=os.getenv("OPENAI_API_KEY"), model="gpt-4o-mini", temperature=0.7
+)
+tools = [roll_dice, update_game_state, summarize_story]
+llm = llm.bind_tools(tools)
 model = template | llm
 
 
@@ -51,6 +54,12 @@ def game_master(state: GameState):
 builder = StateGraph(GameState)
 builder.add_node("game_master", game_master)
 builder.set_entry_point("game_master")
+builder.add_node("tools", ToolNode(tools=tools))
+builder.add_conditional_edges(
+    "game_master",
+    tools_condition,
+)
+builder.add_edge("tools", "game_master")
 graph = builder.compile(checkpointer=MemorySaver())
 
 if __name__ == "__main__":
@@ -65,3 +74,4 @@ if __name__ == "__main__":
         )
 
         print("\nGM:", result["messages"][-1].content)
+        # print("\nGM:", result)
