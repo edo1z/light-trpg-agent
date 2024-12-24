@@ -3,17 +3,19 @@ from typing import List
 from schemas import GameState
 from langgraph.types import Command
 from typing import Dict, Any
+from typing_extensions import Annotated
 from langchain_core.messages import ToolMessage
+from langchain_core.tools.base import InjectedToolCallId
 
 
 @tool
 def update_game_state(
     game_state: GameState,
+    tool_call_id: Annotated[str, InjectedToolCallId],
     hp_change: int = 0,
     items_to_add: List[str] = None,
     items_to_remove: List[str] = None,
     turn_count_inc: int = 0,
-    tool_call_id: str = "default",
 ) -> Command:
     """ゲームの状態を一括で更新します。HP、アイテム、ターン数を同時に更新できます。"""
     items = game_state["items"].copy()
