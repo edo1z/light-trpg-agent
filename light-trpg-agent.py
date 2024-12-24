@@ -5,7 +5,7 @@ from langgraph.graph import Graph
 from langchain_core.prompts import ChatPromptTemplate
 from langgraph.checkpoint.memory import MemorySaver
 from langchain_core.messages import HumanMessage
-from tools import roll_dice, update_turn, update_hp, manage_inventory, summarize_story
+from tools import roll_dice, update_game_state, summarize_story
 from langgraph.graph import StateGraph
 from schemas import GameState
 from langgraph.prebuilt import ToolNode, tools_condition
@@ -22,10 +22,13 @@ template = ChatPromptTemplate(
 
     以下のツールが利用可能です：
     - roll_dice: サイコロを振る（例：2d6）。戦闘や判定時に使用してください。
-    - update_turn: ターン数を更新します。
-    - update_hp: プレイヤーのHPを更新します。
-    - manage_inventory: アイテムの追加・削除を行います。
-    - summarize_story: 3ターン経過時やセッション終了時に物語を要約します。
+    - update_game_state: ゲームの状態（HP・アイテム・ターン）を一括で更新します。
+    - summarize_story: セッション終了時に物語を要約します。
+
+    重要な制約：
+    - 状態の更新（HP・アイテム・ターン）は必ず1回のupdate_game_stateで行ってください
+    - update_game_stateからのToolMessageを受け取った後は、新たなツール呼び出しを行わないでください
+    - roll_diceは連続して使用可能です
 
     ルール：
     1. 最初は以下の順で1つずつ質問してください：
@@ -43,9 +46,8 @@ template = ChatPromptTemplate(
 
     3. プレイヤーのアクションごとにツールを適切に使用してください
     4. 戦闘や判定時は必ずroll_diceを使用してください
-    5. HPやアイテムの変更時は必ずupdate_hp、manage_inventoryを使用してください
-    6. ターンが進む時は必ずupdate_turnを使用してください
-    7. セッション終了時はsummarize_storyで物語を要約してください
+    5. 状態の更新は必ずupdate_game_stateを使用してください
+    6. セッション終了時は必ずsummarize_storyで物語を要約してください
     """,
         ),
         ("placeholder", "{messages}"),
@@ -54,7 +56,7 @@ template = ChatPromptTemplate(
 llm = ChatOpenAI(
     api_key=os.getenv("OPENAI_API_KEY"), model="gpt-4o-mini", temperature=0.7
 )
-tools = [roll_dice, update_turn, update_hp, manage_inventory, summarize_story]
+tools = [roll_dice, update_game_state, summarize_story]
 llm = llm.bind_tools(tools)
 model = template | llm
 
@@ -78,24 +80,24 @@ graph = builder.compile(checkpointer=MemorySaver())
 if __name__ == "__main__":
     config = {"configurable": {"thread_id": "test-thread"}}
 
-    # 初期メッセージを空文字列で送信して、エージェントから会話を開始
     print("\n=== TRPGセッション開始 ===\n")
-    result = graph.invoke(
+
+    # 初期ストリーム
+    for event in graph.stream(
         {
             "messages": [HumanMessage(content="")],
         },
         config=config,
-    )
-    print("\nGM:", result["messages"][-1].content)
+    ):
+        print("\nイベント:", event)
 
     # メインループ
     while True:
         user_input = input("\n> ")
-        result = graph.invoke(
+        for event in graph.stream(
             {
                 "messages": [HumanMessage(content=user_input)],
             },
             config=config,
-        )
-        # print("\nGM:", result["messages"][-1].content)
-        print(result)
+        ):
+            print("\nイベント:", event)
