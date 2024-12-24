@@ -28,13 +28,13 @@ template = ChatPromptTemplate(
     - summarize_story: 3ターン経過時やセッション終了時に物語を要約します。
 
     ルール：
-    1. 最初は必ず以下の順で質問し、設定を決めてください：
-       - ジャンル（ファンタジー、SF、ホラーなど）
-       - 主人公の名前
-       - 世界観と目標
-       - ターン数（3〜10の間で選択）
-       - HP（2d6で決定）
-       - 初期アイテム（1d6の結果の数だけランダムに設定）
+    1. 最初は以下の順で1つずつ質問してください：
+       a) まずジャンルを質問（ファンタジー、SF、ホラーなど）
+       b) 次に主人公の名前を質問
+       c) 次に世界観と目標を質問
+       d) 次にターン数を質問（3〜10の間）
+       e) その後、あなたがroll_diceで2d6を振ってHPを決定
+       f) 最後に、あなたがroll_diceで1d6を振り、出た目の数だけアイテムをランダムに設定
 
     2. プレイ開始時と各ターン開始時には必ず以下を表示：
        - 現在のターン数
@@ -61,7 +61,7 @@ model = template | llm
 
 def game_master(state: GameState):
     response = model.invoke({"messages": state["messages"]})
-    return {"messages": [response]}
+    return {**state, "messages": [response]}
 
 
 builder = StateGraph(GameState)
@@ -77,14 +77,25 @@ graph = builder.compile(checkpointer=MemorySaver())
 
 if __name__ == "__main__":
     config = {"configurable": {"thread_id": "test-thread"}}
+
+    # 初期メッセージを空文字列で送信して、エージェントから会話を開始
+    print("\n=== TRPGセッション開始 ===\n")
+    result = graph.invoke(
+        {
+            "messages": [HumanMessage(content="")],
+        },
+        config=config,
+    )
+    print("\nGM:", result["messages"][-1].content)
+
+    # メインループ
     while True:
-        user_input = input("> ")
+        user_input = input("\n> ")
         result = graph.invoke(
             {
                 "messages": [HumanMessage(content=user_input)],
             },
             config=config,
         )
-
-        print("\nGM:", result["messages"][-1].content)
-        # print("\nGM:", result)
+        # print("\nGM:", result["messages"][-1].content)
+        print(result)
